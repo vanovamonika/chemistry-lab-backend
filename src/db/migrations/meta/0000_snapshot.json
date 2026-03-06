@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "0fb44e82-cf1f-48ca-87d1-331b82fe6503",
+  "id": "732ac6a9-d694-4cc3-af9d-3781db46108d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "chemical_content": {
@@ -33,6 +33,20 @@
           "type": "real",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "weight": {
+          "name": "weight",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "molar_concentration": {
+          "name": "molar_concentration",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "color": {
@@ -232,7 +246,7 @@
           "name": "user_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "type_id": {

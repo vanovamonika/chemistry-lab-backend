@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { authMiddleware } from '../auth/middleware';
+import { authMiddleware, optionalAuthMiddleware } from '../auth/middleware';
 import { chemicalService } from '../services/chemicalService';
 
 const router = Router();
@@ -69,7 +69,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createChemicalSchema.safeParse(req.body);
 
@@ -81,14 +81,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       });
     }
 
-    if (!req.user?.userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-    }
-
-    const result = await chemicalService.createChemical(req.user.userId, parsed.data);
+    const result = await chemicalService.createChemical(req.user?.userId, parsed.data);
     const statusCode = result.success ? 201 : 400;
     res.status(statusCode).json(result);
   } catch (error) {

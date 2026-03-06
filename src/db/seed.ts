@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import path from 'path';
 import * as schema from './schema';
 import 'dotenv/config';
+import { calculateMolarMass } from '../utils/chemistry';
 
 async function seed() {
   console.log('🌱 Starting database seed...');
@@ -52,6 +53,7 @@ async function seed() {
         solubleInWater: true,
         opacity: 0.01,
         hasRefraction: true,
+        molarMass: 18.015, // g/mol
       },
       {
         name: 'Hydrochloric Acid',
@@ -62,6 +64,7 @@ async function seed() {
         solubleInWater: true,
         opacity: 0.01,
         hasRefraction: true,
+        molarMass: 36.458, // g/mol
       },
       {
         name: 'Sodium Hydroxide',
@@ -72,6 +75,7 @@ async function seed() {
         solubleInWater: true,
         opacity: 1,
         hasRefraction: true,
+        molarMass: 39.997, // g/mol
       },
       {
         name: 'Sodium Chloride',
@@ -82,6 +86,7 @@ async function seed() {
         solubleInWater: true,
         opacity: 1,
         hasRefraction: true,
+        molarMass: 58.443, // g/mol
       },
       {
         name: 'Ethanol',
@@ -92,6 +97,7 @@ async function seed() {
         solubleInWater: true,
         opacity: 0.01,
         hasRefraction: true,
+        molarMass: 46.068, // g/mol
       },
       {
         name: 'Copper Sulfate Pentahydrate',
@@ -102,15 +108,18 @@ async function seed() {
         solubleInWater: true,
         opacity: 1,
         hasRefraction: true,
+        molarMass: 249.685, // g/mol
       },
     ];
 
     for (const chem of chemicals) {
+      const computedMolarMass = calculateMolarMass(chem.formula);
       await db.insert(schema.chemicals).values({
         id: uuidv4(),
         createdById: userId,
         isPublic: true,
         ...chem,
+        molarMass: computedMolarMass ?? (chem as any).molarMass,
       });
     }
 
@@ -155,8 +164,8 @@ async function seed() {
     const reactions = [
       {
         equation: 'HCl + NaOH → NaCl + H2O',
-        reactants: JSON.stringify(['HCl', 'NaOH']),
-        products: JSON.stringify(['NaCl', 'H2O']),
+        reactants: ['HCl', 'NaOH'],
+        products: ['NaCl', 'H2O'],
         color: '#FFFFFF',
         bubbles: false,
         heat: true,
@@ -165,8 +174,8 @@ async function seed() {
       },
       {
         equation: 'CuSO4 + 5H2O → CuSO4·5H2O',
-        reactants: JSON.stringify(['CuSO4', 'H2O']),
-        products: JSON.stringify(['CuSO4·5H2O']),
+        reactants: ['CuSO4', 'H2O'],
+        products: ['CuSO4·5H2O'],
         reactionType: 'hydration',
         color: '#3B7A9E',
         precipitate: true,

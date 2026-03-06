@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
 import { chemicals } from '../db/schema';
+import { calculateMolarMass } from '../utils/chemistry';
 
 export type CreateChemicalInput = {
   name: string;
@@ -63,8 +64,11 @@ export const chemicalService = {
     }
   },
 
-  createChemical: async (userId: string, input: CreateChemicalInput) => {
+  createChemical: async (userId: string | undefined, input: CreateChemicalInput) => {
     try {
+      const calculatedMolarMass = calculateMolarMass(input.formula);
+      const molarMass = calculatedMolarMass ?? input.molarMass;
+
       const newChemical = await db
         .insert(chemicals)
         .values({
@@ -77,7 +81,7 @@ export const chemicalService = {
           solubleInWater: input.solubleInWater,
           opacity: input.opacity,
           hasRefraction: input.hasRefraction,
-          molarMass: input.molarMass,
+          molarMass,
           density: input.density,
           isPublic: input.isPublic,
           createdById: userId,
@@ -124,7 +128,16 @@ export const chemicalService = {
       if (input.solubleInWater !== undefined) updateData.solubleInWater = input.solubleInWater;
       if (input.opacity !== undefined) updateData.opacity = input.opacity;
       if (input.hasRefraction !== undefined) updateData.hasRefraction = input.hasRefraction;
-      if (input.molarMass !== undefined) updateData.molarMass = input.molarMass;
+      if (input.formula !== undefined) {
+        const recalculatedMolarMass = calculateMolarMass(input.formula);
+        if (recalculatedMolarMass !== null) {
+          updateData.molarMass = recalculatedMolarMass;
+        } else if (input.molarMass !== undefined) {
+          updateData.molarMass = input.molarMass;
+        }
+      } else if (input.molarMass !== undefined) {
+        updateData.molarMass = input.molarMass;
+      }
       if (input.density !== undefined) updateData.density = input.density;
       if (input.isPublic !== undefined) updateData.isPublic = input.isPublic;
       updateData.updatedAt = new Date();

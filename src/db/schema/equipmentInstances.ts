@@ -6,7 +6,7 @@ import { workspaces } from './workspaces';
 
 export const equipmentInstances = sqliteTable('equipment_instances', {
   id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.id), // Optional - null for guest users
   typeId: text('type_id').references(() => equipmentTypes.id).notNull(),
   name: text('name'), // optional custom name
   // Current state (could also be stored in workspace snapshot)

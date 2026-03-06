@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
-import { equipmentInstances, equipmentTypes } from '../db/schema';
+import { chemicals, equipmentInstances, equipmentTypes } from '../db/schema';
 
 export type CreateEquipmentInstanceInput = {
   typeId: string;
@@ -12,6 +12,69 @@ export type CreateEquipmentInstanceInput = {
   contents?: unknown;
   temperature?: number;
   isReacting?: number;
+};
+
+type ContentState = 'liquid' | 'solid' | 'gas' | 'aqueous';
+
+type EquipmentContentItem = {
+  chemicalId: string;
+  volume?: number;
+  weight?: number;
+  molarConcentration?: number;
+  color?: string;
+  state?: ContentState;
+};
+
+const toNumber = (value: unknown): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const normalizeContents = async (contents: unknown): Promise<EquipmentContentItem[] | undefined> => {
+  if (!Array.isArray(contents)) return contents as EquipmentContentItem[] | undefined;
+
+  const inputItems = contents as EquipmentContentItem[];
+  const chemicalIds = Array.from(new Set(inputItems.map((item) => item?.chemicalId).filter(Boolean))) as string[];
+
+  if (chemicalIds.length === 0) return [];
+
+  const dbChemicals = await db
+    .select({
+      id: chemicals.id,
+      state: chemicals.state,
+      molarMass: chemicals.molarMass,
+    })
+    .from(chemicals);
+
+  const chemicalMap = new Map(dbChemicals.map((c) => [c.id, c]));
+
+  const normalized = inputItems.map((item) => {
+    const chemical = chemicalMap.get(item.chemicalId);
+    const effectiveState = (chemical?.state || item.state || 'liquid') as ContentState;
+
+    const volume = effectiveState === 'liquid' || effectiveState === 'aqueous'
+      ? Math.max(0, toNumber(item.volume))
+      : 0;
+
+    const weight = effectiveState === 'solid' || effectiveState === 'aqueous'
+      ? Math.max(0, toNumber(item.weight))
+      : 0;
+
+    const molarConcentration =
+      effectiveState === 'aqueous' && chemical?.molarMass && volume > 0
+        ? weight / (volume * chemical.molarMass)
+        : item.molarConcentration;
+
+    return {
+      ...item,
+      state: effectiveState,
+      volume,
+      weight,
+      molarConcentration,
+    };
+  });
+
+  return normalized;
 };
 
 export const equipmentInstanceService = {
@@ -97,7 +160,7 @@ export const equipmentInstanceService = {
     }
   },
 
-  createEquipmentInstance: async (userId: string, input: CreateEquipmentInstanceInput) => {
+  createEquipmentInstance: async (userId: string | undefined, input: CreateEquipmentInstanceInput) => {
     try {
       const foundEquipmentType = await db
         .select({ id: equipmentTypes.id })
@@ -112,17 +175,19 @@ export const equipmentInstanceService = {
         };
       }
 
+      const normalizedContents = await normalizeContents(input.contents);
+
       const newEquipmentInstance = await db
         .insert(equipmentInstances)
         .values({
           id: uuidv4(),
-          userId,
+          userId: userId || null, // null for guest users
           typeId: input.typeId,
           name: input.name,
           currentWorkspaceId: input.currentWorkspaceId,
           positionX: input.positionX,
           positionY: input.positionY,
-          contents: input.contents,
+          contents: normalizedContents,
           temperature: input.temperature,
           isReacting: input.isReacting,
         })
@@ -172,13 +237,17 @@ export const equipmentInstanceService = {
         }
       }
 
+      const normalizedContents = input.contents !== undefined
+        ? await normalizeContents(input.contents)
+        : undefined;
+
       const updateData: any = {};
       if (input.name !== undefined) updateData.name = input.name;
       if (input.typeId !== undefined) updateData.typeId = input.typeId;
       if (input.currentWorkspaceId !== undefined) updateData.currentWorkspaceId = input.currentWorkspaceId;
       if (input.positionX !== undefined) updateData.positionX = input.positionX;
       if (input.positionY !== undefined) updateData.positionY = input.positionY;
-      if (input.contents !== undefined) updateData.contents = input.contents;
+      if (normalizedContents !== undefined) updateData.contents = normalizedContents;
       if (input.temperature !== undefined) updateData.temperature = input.temperature;
       if (input.isReacting !== undefined) updateData.isReacting = input.isReacting;
 

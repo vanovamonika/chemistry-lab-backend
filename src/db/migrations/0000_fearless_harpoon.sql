@@ -3,6 +3,8 @@ CREATE TABLE `chemical_content` (
 	`chemical_id` text NOT NULL,
 	`equipment_instance_id` text NOT NULL,
 	`volume` real NOT NULL,
+	`weight` real,
+	`molar_concentration` real,
 	`color` text NOT NULL,
 	`state` text NOT NULL,
 	FOREIGN KEY (`chemical_id`) REFERENCES `chemicals`(`id`) ON UPDATE no action ON DELETE no action,
@@ -30,7 +32,7 @@ CREATE TABLE `chemicals` (
 --> statement-breakpoint
 CREATE TABLE `equipment_instances` (
 	`id` text PRIMARY KEY NOT NULL,
-	`user_id` text NOT NULL,
+	`user_id` text,
 	`type_id` text NOT NULL,
 	`name` text,
 	`current_workspace_id` text,

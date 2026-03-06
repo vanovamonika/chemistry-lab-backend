@@ -69,7 +69,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createEquipmentInstanceSchema.safeParse(req.body);
 
@@ -81,14 +81,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       });
     }
 
-    if (!req.user?.userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-    }
-
-    const result = await equipmentInstanceService.createEquipmentInstance(req.user.userId, parsed.data);
+    const result = await equipmentInstanceService.createEquipmentInstance(req.user?.userId, parsed.data);
     const statusCode = result.success ? 201 : 400;
     res.status(statusCode).json(result);
   } catch (error) {
@@ -100,7 +93,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const parsedId = idSchema.safeParse(req.params);
 
@@ -134,7 +127,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.patch('/:id', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const parsedId = idSchema.safeParse(req.params);
 
@@ -168,7 +161,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = idSchema.safeParse(req.params);
 
