@@ -34,6 +34,10 @@ const resetPasswordRequestSchema = z.object({
   email: z.string().email('Invalid email format'),
 });
 
+const resendVerificationSchema = z.object({
+  email: z.string().email('Invalid email format'),
+});
+
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -182,6 +186,47 @@ router.post('/request-password-reset', async (req: Request, res: Response) => {
     res.status(200).json(result);
   } catch (error) {
     console.error('Password reset request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+});
+
+/**
+ * Resend email verification message
+ * @param {string} email - User email address
+ * @returns {Object} Success status or error message
+ */
+router.post('/resend-verification', async (req: Request, res: Response) => {
+  try {
+    console.log('[AuthRoutes] Resend verification request for:', req.body.email);
+    
+    const validationResult = resendVerificationSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      console.log('[AuthRoutes] Validation failed:', validationResult.error.flatten());
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: validationResult.error.flatten(),
+      });
+    }
+
+    const { email } = validationResult.data;
+
+    const result = await userService.resendVerificationEmail(email);
+    console.log('[AuthRoutes] Resend verification result:', {
+      email,
+      success: result.success,
+      emailSent: (result as any).emailSent,
+      message: result.message,
+    });
+
+    const statusCode = result.success ? 200 : 400;
+    res.status(statusCode).json(result);
+  } catch (error) {
+    console.error('[AuthRoutes] Resend verification error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -371,5 +416,46 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
     });
   }
 });
+
+// Debug endpoint to test email configuration (only in development)
+if (process.env.NODE_ENV === 'development') {
+  router.post('/debug/test-email', async (req: Request, res: Response) => {
+    try {
+      console.log('[Debug] Test email request');
+      
+      const { sendVerificationEmail } = await import('../services/emailService');
+      
+      const testToken = 'test-token-' + Date.now();
+      const testEmail = req.body.email || process.env.GMAIL_USER;
+      
+      if (!testEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'No email provided and GMAIL_USER not configured',
+        });
+      }
+
+      console.log('[Debug] Sending test email to:', testEmail);
+      const sent = await sendVerificationEmail(testEmail, testToken);
+      
+      console.log('[Debug] Test email result:', sent);
+      
+      res.json({
+        success: true,
+        message: 'Test email endpoint called',
+        emailSent: sent,
+        testEmail,
+        gmailConfigured: !!process.env.GMAIL_USER,
+      });
+    } catch (error) {
+      console.error('[Debug] Test email error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error testing email',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+}
 
 export default router;

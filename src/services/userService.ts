@@ -7,6 +7,7 @@ import { generateToken, generateEmailVerificationToken } from '../auth/tokens';
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from './emailService';
 
 const SALT_ROUNDS = 10;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export const userService = {
   /**
@@ -79,11 +80,23 @@ export const userService = {
         .returning();
 
       // Send verification email
-      await sendVerificationEmail(email, verificationToken);
+      const emailSent = await sendVerificationEmail(email, verificationToken);
+
+      if (!emailSent) {
+        console.warn(`Verification email could not be sent to ${email}.`);
+      }
 
       return {
         success: true,
-        message: 'User registered successfully. Please verify your email.',
+        message: emailSent
+          ? 'User registered successfully. Please verify your email.'
+          : 'User registered, but we could not send the verification email. Please request a new verification email.',
+        emailSent,
+        ...(emailSent || IS_PRODUCTION
+          ? {}
+          : {
+              verificationToken,
+            }),
         user: {
           id: newUser[0].id,
           email: newUser[0].email,
@@ -168,6 +181,82 @@ export const userService = {
       return {
         success: false,
         message: 'Error logging in',
+      };
+    }
+  },
+
+  /**
+   * Resend email verification
+   */
+  resendVerificationEmail: async (email: string) => {
+    try {
+      console.log(`[UserService] Resending verification email to ${email}`);
+      
+      const foundUsers = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (foundUsers.length === 0) {
+        console.log(`[UserService] User not found for email: ${email}`);
+        // Return success even if user doesn't exist (for security)
+        return {
+          success: true,
+          message: 'If the account exists and is not verified, a new verification email has been sent.',
+        };
+      }
+
+      const user = foundUsers[0];
+      console.log(`[UserService] User found: ${user.id}, verified: ${user.isEmailVerified}`);
+
+      if (user.isEmailVerified) {
+        console.log(`[UserService] Email already verified for ${email}`);
+        return {
+          success: true,
+          message: 'Email is already verified.',
+        };
+      }
+
+      const verificationToken = user.emailVerificationToken || generateEmailVerificationToken();
+      console.log(`[UserService] Using verification token: ${verificationToken}`);
+
+      if (!user.emailVerificationToken) {
+        await db
+          .update(users)
+          .set({
+            emailVerificationToken: verificationToken,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, user.id));
+        console.log(`[UserService] Updated verification token in database`);
+      }
+
+      console.log(`[UserService] Sending verification email to ${email}`);
+      const emailSent = await sendVerificationEmail(email, verificationToken);
+      console.log(`[UserService] Email sending result: ${emailSent}`);
+
+      if (!emailSent) {
+        console.error(`[UserService] Resent verification email could not be sent to ${email}.`);
+      }
+
+      return {
+        success: true,
+        message: emailSent
+          ? 'Verification email sent successfully.'
+          : 'Could not send verification email. Please check email settings and try again.',
+        emailSent,
+        ...(emailSent || IS_PRODUCTION
+          ? {}
+          : {
+              verificationToken,
+            }),
+      };
+    } catch (error) {
+      console.error('[UserService] Error resending verification email:', error);
+      return {
+        success: false,
+        message: 'Error resending verification email',
       };
     }
   },
