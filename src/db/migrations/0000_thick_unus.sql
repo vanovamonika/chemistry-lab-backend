@@ -1,3 +1,14 @@
+CREATE TABLE `chemical_content` (
+	`id` text PRIMARY KEY NOT NULL,
+	`chemical_id` text NOT NULL,
+	`equipment_instance_id` text NOT NULL,
+	`volume` real NOT NULL,
+	`color` text NOT NULL,
+	`state` text NOT NULL,
+	FOREIGN KEY (`chemical_id`) REFERENCES `chemicals`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`equipment_instance_id`) REFERENCES `equipment_instances`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `chemicals` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -10,13 +21,37 @@ CREATE TABLE `chemicals` (
 	`has_refraction` integer DEFAULT false,
 	`molar_mass` real,
 	`density` real,
-	`melting_point` real,
-	`boiling_point` real,
 	`is_public` integer DEFAULT false,
 	`created_by_id` text,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `equipment_instances` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`type_id` text NOT NULL,
+	`name` text,
+	`current_workspace_id` text,
+	`position_x` real,
+	`position_y` real,
+	`contents` text,
+	`temperature` real DEFAULT 25,
+	`is_reacting` integer DEFAULT 0,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`type_id`) REFERENCES `equipment_types`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`current_workspace_id`) REFERENCES `workspaces`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `equipment_types` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`type` text NOT NULL,
+	`default_capacity` real NOT NULL,
+	`description` text,
+	`icon` text,
+	`is_public` integer DEFAULT 1
 );
 --> statement-breakpoint
 CREATE TABLE `favorite_chemicals` (

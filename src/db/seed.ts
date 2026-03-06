@@ -46,52 +46,62 @@ async function seed() {
       {
         name: 'Water',
         formula: 'H2O',
-        colorHex: '#88CCFF',
+        colorHex: '#ffffff',
         color: 'Colorless',
         state: 'liquid' as const,
         solubleInWater: true,
-        opacity: 0.1,
+        opacity: 0.01,
         hasRefraction: true,
-      },
-      {
-        name: 'Salt',
-        formula: 'NaCl',
-        colorHex: '#FFFFFF',
-        color: 'White',
-        state: 'solid' as const,
-        solubleInWater: true,
-        opacity: 1,
-        hasRefraction: false,
-      },
-      {
-        name: 'Copper Sulfate',
-        formula: 'CuSO4',
-        colorHex: '#3B7A9E',
-        color: 'Blue',
-        state: 'solid' as const,
-        solubleInWater: true,
-        opacity: 1,
-        hasRefraction: false,
       },
       {
         name: 'Hydrochloric Acid',
         formula: 'HCl',
-        colorHex: '#FFFFFF',
-        color: 'Colorless',
+        colorHex: '#fffacd',
+        color: 'Yellow',
         state: 'liquid' as const,
         solubleInWater: true,
-        opacity: 0.1,
+        opacity: 0.01,
         hasRefraction: true,
       },
       {
         name: 'Sodium Hydroxide',
         formula: 'NaOH',
-        colorHex: '#FFFFFF',
+        colorHex: '#ffffff',
         color: 'White',
         state: 'solid' as const,
         solubleInWater: true,
         opacity: 1,
-        hasRefraction: false,
+        hasRefraction: true,
+      },
+      {
+        name: 'Sodium Chloride',
+        formula: 'NaCl',
+        colorHex: '#ffffff',
+        color: 'White',
+        state: 'solid' as const,
+        solubleInWater: true,
+        opacity: 1,
+        hasRefraction: true,
+      },
+      {
+        name: 'Ethanol',
+        formula: 'C2H5OH',
+        colorHex: '#ffffff',
+        color: 'Colorless',
+        state: 'liquid' as const,
+        solubleInWater: true,
+        opacity: 0.01,
+        hasRefraction: true,
+      },
+      {
+        name: 'Copper Sulfate Pentahydrate',
+        formula: 'CuSO4.5H2O',
+        colorHex: '#87CEEB',
+        color: 'Sky Blue',
+        state: 'solid' as const,
+        solubleInWater: true,
+        opacity: 1,
+        hasRefraction: true,
       },
     ];
 
@@ -103,6 +113,42 @@ async function seed() {
         ...chem,
       });
     }
+
+    // 2.5 Add equipment types
+    console.log('🧱 Adding equipment types...');
+    const beakerTypeId = uuidv4();
+    const testTubeTypeId = uuidv4();
+    const flaskTypeId = uuidv4();
+
+    await db.insert(schema.equipmentTypes).values([
+      {
+        id: beakerTypeId,
+        name: 'Beaker',
+        type: 'beaker',
+        defaultCapacity: 250,
+        description: 'A cylindrical laboratory glass vessel with a flat bottom',
+        isPublic: 1,
+      },
+      {
+        id: testTubeTypeId,
+        name: 'Test Tube',
+        type: 'testTube',
+        defaultCapacity: 50,
+        description: 'A small cylinder of thin glass closed at one end',
+        isPublic: 1,
+      },
+      {
+        id: flaskTypeId,
+        name: 'Flask',
+        type: 'flask',
+        defaultCapacity: 500,
+        description: 'A conical flask with a narrow neck for mixing and heating',
+        isPublic: 1,
+      },
+    ]);
+
+    // 2.6 Users start with empty workspace - no default equipment instances
+    console.log('✓ Equipment types added (users start with empty workspace)');
 
     // 3. Add some reactions
     console.log('⚗️ Adding reactions...');
@@ -161,7 +207,7 @@ async function seed() {
     });
 
     console.log('✅ Seed completed successfully!');
-    console.log(`📊 Added: ${chemicals.length} chemicals, ${reactions.length} reactions`);
+    console.log(`📊 Added: ${chemicals.length} chemicals, 2 equipment types, 2 equipment instances, ${reactions.length} reactions`);
     console.log('🔑 Demo login: demo@chemistrylab.com / demo123');
 
   } catch (error) {
