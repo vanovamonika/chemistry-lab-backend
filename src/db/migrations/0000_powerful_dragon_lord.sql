@@ -121,6 +121,22 @@ CREATE TABLE `workspace_history` (
 	FOREIGN KEY (`workspace_id`) REFERENCES `workspaces`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `workspace_inventory` (
+	`id` text PRIMARY KEY NOT NULL,
+	`workspace_id` text NOT NULL,
+	`chemical_id` text NOT NULL,
+	`concentration` real DEFAULT 100 NOT NULL,
+	`volume` real,
+	`weight` real,
+	`molar_concentration` real,
+	`container_type` text,
+	`label` text,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`workspace_id`) REFERENCES `workspaces`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`chemical_id`) REFERENCES `chemicals`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `workspaces` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,

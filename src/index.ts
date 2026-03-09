@@ -9,6 +9,7 @@ import equipmentTypesRoutes from './routes/equipmentTypesRoutes';
 import favoritesRoutes from './routes/favoritesRoutes';
 import workspacesRoutes from './routes/workspacesRoutes';
 import reactionsRoutes from './routes/reactionsRoutes';
+import workspaceInventoryRoutes from './routes/workspaceInventory';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use('/equipment-types', equipmentTypesRoutes);
 app.use('/favorites', favoritesRoutes);
 app.use('/workspaces', workspacesRoutes);
 app.use('/reactions', reactionsRoutes);
+app.use('/workspace-inventory', workspaceInventoryRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

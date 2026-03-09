@@ -205,8 +205,9 @@ async function seed() {
       safetyGoggles: true,
     };
 
+    const workspaceId = uuidv4();
     await db.insert(schema.workspaces).values({
-      id: uuidv4(),
+      id: workspaceId,
       userId: userId,
       name: 'My Chemistry Lab',
       description: 'My first workspace',
@@ -215,8 +216,92 @@ async function seed() {
       isFumeHoodActive: false,
     });
 
+    // 5. Add workspace inventory with various concentrations
+    console.log('🧪 Adding workspace inventory items...');
+    
+    // Get the chemical IDs we just created
+    const allChemicals = await db.select().from(schema.chemicals);
+    const getChemicalId = (formula: string) => {
+      const chem = allChemicals.find(c => c.formula === formula);
+      return chem?.id || '';
+    };
+
+    const workspaceInventoryItems = [
+      {
+        // 50% HCl solution
+        id: uuidv4(),
+        workspaceId: workspaceId,
+        chemicalId: getChemicalId('HCl'),
+        concentration: 50,
+        volume: 100, // 100 mL available
+        molarConcentration: 13.7, // ~50% HCl is approximately 13.7 M
+        label: 'Diluted HCl',
+        containerType: 'bottle',
+      },
+      {
+        // 10% NaOH solution
+        id: uuidv4(),
+        workspaceId: workspaceId,
+        chemicalId: getChemicalId('NaOH'),
+        concentration: 10,
+        volume: 150, // 150 mL available
+        molarConcentration: 2.5, // ~10% NaOH is approximately 2.5 M
+        label: 'Diluted NaOH',
+        containerType: 'bottle',
+      },
+      {
+        // Saturated NaCl solution (~26% at 25°C)
+        id: uuidv4(),
+        workspaceId: workspaceId,
+        chemicalId: getChemicalId('NaCl'),
+        concentration: 26,
+        volume: 200, // 200 mL available
+        molarConcentration: 6.1, // Saturated NaCl is about 6.1 M
+        label: 'Saturated Salt Solution',
+        containerType: 'flask',
+      },
+      {
+        // 70% Ethanol solution
+        id: uuidv4(),
+        workspaceId: workspaceId,
+        chemicalId: getChemicalId('C2H5OH'),
+        concentration: 70,
+        volume: 500, // 500 mL available
+        molarConcentration: 12.1, // ~70% ethanol is approximately 12.1 M
+        label: 'Rubbing Alcohol (70%)',
+        containerType: 'bottle',
+      },
+      {
+        // 5% Copper Sulfate solution
+        id: uuidv4(),
+        workspaceId: workspaceId,
+        chemicalId: getChemicalId('CuSO4.5H2O'),
+        concentration: 5,
+        volume: 250, // 250 mL available
+        molarConcentration: 0.2, // ~5% CuSO4·5H2O is approximately 0.2 M
+        label: 'Dilute Copper Sulfate',
+        containerType: 'beaker',
+      },
+      {
+        // Pure water (100%)
+        id: uuidv4(),
+        workspaceId: workspaceId,
+        chemicalId: getChemicalId('H2O'),
+        concentration: 100,
+        volume: 1000, // 1000 mL available
+        label: 'Distilled Water',
+        containerType: 'bottle',
+      },
+    ];
+
+    for (const item of workspaceInventoryItems) {
+      if (item.chemicalId) { // Only insert if chemical exists
+        await db.insert(schema.workspaceInventory).values(item);
+      }
+    }
+
     console.log('✅ Seed completed successfully!');
-    console.log(`📊 Added: ${chemicals.length} chemicals, 2 equipment types, 2 equipment instances, ${reactions.length} reactions`);
+    console.log(`📊 Added: ${chemicals.length} chemicals, 3 equipment types, ${reactions.length} reactions, ${workspaceInventoryItems.length} workspace inventory items`);
     console.log('🔑 Demo login: demo@chemistrylab.com / demo123');
 
   } catch (error) {
