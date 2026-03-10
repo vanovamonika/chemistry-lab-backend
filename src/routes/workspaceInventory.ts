@@ -49,7 +49,7 @@ router.patch('/:id/amount', authMiddleware, async (req, res) => {
     const { volume, weight } = req.body;
     
     const item = await workspaceInventoryService.updateAmount(id, volume, weight);
-    res.json(item);
+    res.json(item ?? { success: true, id, volume, weight });
   } catch (error) {
     console.error('Error updating workspace inventory amount:', error);
     res.status(500).json({ error: 'Failed to update amount' });
