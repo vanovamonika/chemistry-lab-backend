@@ -50,7 +50,7 @@ const normalizeContents = async (contents: unknown): Promise<EquipmentContentIte
 
   const normalized = inputItems.map((item) => {
     const chemical = chemicalMap.get(item.chemicalId);
-    const effectiveState = (chemical?.state || item.state || 'liquid') as ContentState;
+    const effectiveState = (item.state || chemical?.state || 'liquid') as ContentState;
 
     const volume = effectiveState === 'liquid' || effectiveState === 'aqueous'
       ? Math.max(0, toNumber(item.volume))

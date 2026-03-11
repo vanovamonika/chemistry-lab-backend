@@ -1,4 +1,5 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { eq } from 'drizzle-orm';
 import Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
@@ -195,23 +196,24 @@ async function seed() {
 
     // 4. Create a demo workspace
     console.log('🔬 Creating demo workspace...');
-    const defaultLabState = {
-      equipment: {},
-      chemicals: {},
-      activeReactions: {},
-      reactionHistory: [],
-      labTemperature: 25,
-      isFumeHoodActive: false,
-      safetyGoggles: true,
-    };
-
     const workspaceId = uuidv4();
+
+    // Create workspace first so workspace inventory FK references are valid
     await db.insert(schema.workspaces).values({
       id: workspaceId,
       userId: userId,
       name: 'My Chemistry Lab',
       description: 'My first workspace',
-      labState: JSON.stringify(defaultLabState),
+      labState: JSON.stringify({
+        equipment: {},
+        chemicals: {},
+        workspaceInventory: [],
+        activeReactions: {},
+        reactionHistory: [],
+        labTemperature: 25,
+        isFumeHoodActive: false,
+        safetyGoggles: true,
+      }),
       labTemperature: 25,
       isFumeHoodActive: false,
     });
@@ -226,12 +228,24 @@ async function seed() {
       return chem?.id || '';
     };
 
+    const hclId = getChemicalId('HCl');
+    const naohId = getChemicalId('NaOH');
+    const naclId = getChemicalId('NaCl');
+    const ethanolId = getChemicalId('C2H5OH');
+    const cuso4Id = getChemicalId('CuSO4.5H2O');
+
+    const hclInventoryId = uuidv4();
+    const naohInventoryId = uuidv4();
+    const naclInventoryId = uuidv4();
+    const ethanolInventoryId = uuidv4();
+    const cuso4InventoryId = uuidv4();
+
     const workspaceInventoryItems = [
       {
         // 50% HCl solution
-        id: uuidv4(),
+        id: hclInventoryId,
         workspaceId: workspaceId,
-        chemicalId: getChemicalId('HCl'),
+        chemicalId: hclId,
         concentration: 50,
         volume: 100, // 100 mL available
         molarConcentration: 13.7, // ~50% HCl is approximately 13.7 M
@@ -240,57 +254,50 @@ async function seed() {
       },
       {
         // 10% NaOH solution
-        id: uuidv4(),
+        id: naohInventoryId,
         workspaceId: workspaceId,
-        chemicalId: getChemicalId('NaOH'),
+        chemicalId: naohId,
         concentration: 10,
         volume: 150, // 150 mL available
+        weight: 16.7,
         molarConcentration: 2.5, // ~10% NaOH is approximately 2.5 M
         label: 'Diluted NaOH',
         containerType: 'bottle',
       },
       {
         // Saturated NaCl solution (~26% at 25°C)
-        id: uuidv4(),
+        id: naclInventoryId,
         workspaceId: workspaceId,
-        chemicalId: getChemicalId('NaCl'),
+        chemicalId: naclId,
         concentration: 26,
         volume: 200, // 200 mL available
+        weight: 70.3,
         molarConcentration: 6.1, // Saturated NaCl is about 6.1 M
         label: 'Saturated Salt Solution',
         containerType: 'flask',
       },
       {
         // 70% Ethanol solution
-        id: uuidv4(),
+        id: ethanolInventoryId,
         workspaceId: workspaceId,
-        chemicalId: getChemicalId('C2H5OH'),
+        chemicalId: ethanolId,
         concentration: 70,
-        volume: 500, // 500 mL available
+        volume: 200, // 200 mL available
         molarConcentration: 12.1, // ~70% ethanol is approximately 12.1 M
         label: 'Rubbing Alcohol (70%)',
         containerType: 'bottle',
       },
       {
         // 5% Copper Sulfate solution
-        id: uuidv4(),
+        id: cuso4InventoryId,
         workspaceId: workspaceId,
-        chemicalId: getChemicalId('CuSO4.5H2O'),
+        chemicalId: cuso4Id,
         concentration: 5,
         volume: 250, // 250 mL available
+        weight: 13.2,
         molarConcentration: 0.2, // ~5% CuSO4·5H2O is approximately 0.2 M
         label: 'Dilute Copper Sulfate',
         containerType: 'beaker',
-      },
-      {
-        // Pure water (100%)
-        id: uuidv4(),
-        workspaceId: workspaceId,
-        chemicalId: getChemicalId('H2O'),
-        concentration: 100,
-        volume: 1000, // 1000 mL available
-        label: 'Distilled Water',
-        containerType: 'bottle',
       },
     ];
 
@@ -300,8 +307,213 @@ async function seed() {
       }
     }
 
+    // 6. Seed equipment with actual physical storage locations for workspace inventory items
+    console.log('🧰 Adding seeded equipment instances with linked inventory contents...');
+
+    const beaker1Id = uuidv4();
+    const testTube1Id = uuidv4();
+    const flask1Id = uuidv4();
+    const flask2Id = uuidv4();
+    const testTube2Id = uuidv4();
+
+    const seededEquipmentState = {
+      [beaker1Id]: {
+        id: beaker1Id,
+        type: 'beaker',
+        typeId: beakerTypeId,
+        name: 'Beaker A',
+        position: { x: 220, y: 360 },
+        contents: [
+          {
+            chemicalId: hclId,
+            color: '#fffacd',
+            state: 'aqueous',
+            volume: 100,
+            weight: undefined,
+            molarConcentration: 13.7,
+            workspaceInventoryItemId: hclInventoryId,
+          },
+        ],
+        capacity: 250,
+        currentVolume: 100,
+        temperature: 25,
+        isReacting: false,
+      },
+      [testTube1Id]: {
+        id: testTube1Id,
+        type: 'beaker',
+        typeId: beakerTypeId,
+        name: 'Beaker B',
+        position: { x: 420, y: 360 },
+        contents: [
+          {
+            chemicalId: naohId,
+            color: '#ffffff',
+            state: 'aqueous',
+            volume: 150,
+            weight: 16.7,
+            molarConcentration: 2.5,
+            workspaceInventoryItemId: naohInventoryId,
+          },
+        ],
+        capacity: 250,
+        currentVolume: 150,
+        temperature: 25,
+        isReacting: false,
+      },
+      [flask1Id]: {
+        id: flask1Id,
+        type: 'flask',
+        typeId: flaskTypeId,
+        name: 'Flask A',
+        position: { x: 620, y: 360 },
+        contents: [
+          {
+            chemicalId: naclId,
+            color: '#ffffff',
+            state: 'aqueous',
+            volume: 200,
+            weight: 70.3,
+            molarConcentration: 6.1,
+            workspaceInventoryItemId: naclInventoryId,
+          },
+        ],
+        capacity: 500,
+        currentVolume: 200,
+        temperature: 25,
+        isReacting: false,
+      },
+      [flask2Id]: {
+        id: flask2Id,
+        type: 'flask',
+        typeId: flaskTypeId,
+        name: 'Flask B',
+        position: { x: 820, y: 360 },
+        contents: [
+          {
+            chemicalId: ethanolId,
+            color: '#ffffff',
+            state: 'aqueous',
+            volume: 200,
+            weight: undefined,
+            molarConcentration: 12.1,
+            workspaceInventoryItemId: ethanolInventoryId,
+          },
+        ],
+        capacity: 500,
+        currentVolume: 200,
+        temperature: 25,
+        isReacting: false,
+      },
+      [testTube2Id]: {
+        id: testTube2Id,
+        type: 'beaker',
+        typeId: beakerTypeId,
+        name: 'Beaker C',
+        position: { x: 1020, y: 360 },
+        contents: [
+          {
+            chemicalId: cuso4Id,
+            color: '#87CEEB',
+            state: 'aqueous',
+            volume: 250,
+            weight: 13.2,
+            molarConcentration: 0.2,
+            workspaceInventoryItemId: cuso4InventoryId,
+          },
+        ],
+        capacity: 250,
+        currentVolume: 250,
+        temperature: 25,
+        isReacting: false,
+      },
+    };
+
+    const defaultLabState = {
+      equipment: seededEquipmentState,
+      chemicals: {},
+      workspaceInventory: workspaceInventoryItems,
+      activeReactions: {},
+      reactionHistory: [],
+      labTemperature: 25,
+      isFumeHoodActive: false,
+      safetyGoggles: true,
+    };
+
+    await db
+      .update(schema.workspaces)
+      .set({
+        labState: JSON.stringify(defaultLabState),
+        labTemperature: 25,
+        isFumeHoodActive: false,
+      })
+      .where(eq(schema.workspaces.id, workspaceId));
+
+    await db.insert(schema.equipmentInstances).values([
+      {
+        id: beaker1Id,
+        userId,
+        typeId: beakerTypeId,
+        name: 'Beaker A',
+        currentWorkspaceId: workspaceId,
+        positionX: 220,
+        positionY: 360,
+        contents: seededEquipmentState[beaker1Id].contents,
+        temperature: 25,
+        isReacting: 0,
+      },
+      {
+        id: testTube1Id,
+        userId,
+        typeId: beakerTypeId,
+        name: 'Beaker B',
+        currentWorkspaceId: workspaceId,
+        positionX: 420,
+        positionY: 360,
+        contents: seededEquipmentState[testTube1Id].contents,
+        temperature: 25,
+        isReacting: 0,
+      },
+      {
+        id: flask1Id,
+        userId,
+        typeId: flaskTypeId,
+        name: 'Flask A',
+        currentWorkspaceId: workspaceId,
+        positionX: 620,
+        positionY: 360,
+        contents: seededEquipmentState[flask1Id].contents,
+        temperature: 25,
+        isReacting: 0,
+      },
+      {
+        id: flask2Id,
+        userId,
+        typeId: flaskTypeId,
+        name: 'Flask B',
+        currentWorkspaceId: workspaceId,
+        positionX: 820,
+        positionY: 360,
+        contents: seededEquipmentState[flask2Id].contents,
+        temperature: 25,
+        isReacting: 0,
+      },
+      {
+        id: testTube2Id,
+        userId,
+        typeId: beakerTypeId,
+        name: 'Beaker C',
+        currentWorkspaceId: workspaceId,
+        positionX: 1020,
+        positionY: 360,
+        contents: seededEquipmentState[testTube2Id].contents,
+        temperature: 25,
+        isReacting: 0,
+      },
+    ]);
+
     console.log('✅ Seed completed successfully!');
-    console.log(`📊 Added: ${chemicals.length} chemicals, 3 equipment types, ${reactions.length} reactions, ${workspaceInventoryItems.length} workspace inventory items`);
+    console.log(`📊 Added: ${chemicals.length} chemicals, 3 equipment types, ${reactions.length} reactions, ${workspaceInventoryItems.length} workspace inventory items, 5 equipment instances`);
     console.log('🔑 Demo login: demo@chemistrylab.com / demo123');
 
   } catch (error) {
