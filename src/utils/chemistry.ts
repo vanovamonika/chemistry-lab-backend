@@ -114,7 +114,21 @@ export const calculateMolarMass = (formula: string): number | null => {
   if (!formula || typeof formula !== 'string') return null;
 
   try {
+    const subscriptToDigitMap: Record<string, string> = {
+      '₀': '0',
+      '₁': '1',
+      '₂': '2',
+      '₃': '3',
+      '₄': '4',
+      '₅': '5',
+      '₆': '6',
+      '₇': '7',
+      '₈': '8',
+      '₉': '9',
+    };
+
     const normalized = formula
+      .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (ch) => subscriptToDigitMap[ch] ?? ch)
       .replace(/·/g, '.')
       .replace(/\(aq\)|\(s\)|\(l\)|\(g\)/gi, '')
       .trim();

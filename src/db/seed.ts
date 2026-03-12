@@ -55,6 +55,7 @@ async function seed() {
         opacity: 0.01,
         hasRefraction: true,
         molarMass: 18.015, // g/mol
+        density: 1.0, // g/mL
       },
       {
         name: 'Hydrochloric Acid',
@@ -66,6 +67,7 @@ async function seed() {
         opacity: 0.01,
         hasRefraction: true,
         molarMass: 36.458, // g/mol
+        density: 1.19, // g/mL
       },
       {
         name: 'Sodium Hydroxide',
@@ -99,6 +101,7 @@ async function seed() {
         opacity: 0.01,
         hasRefraction: true,
         molarMass: 46.068, // g/mol
+        density: 0.789, // g/mL
       },
       {
         name: 'Copper Sulfate Pentahydrate',

@@ -66,8 +66,7 @@ export const chemicalService = {
 
   createChemical: async (userId: string | undefined, input: CreateChemicalInput) => {
     try {
-      const calculatedMolarMass = calculateMolarMass(input.formula);
-      const molarMass = calculatedMolarMass ?? input.molarMass;
+      const molarMass = calculateMolarMass(input.formula);
 
       const newChemical = await db
         .insert(chemicals)
@@ -129,14 +128,7 @@ export const chemicalService = {
       if (input.opacity !== undefined) updateData.opacity = input.opacity;
       if (input.hasRefraction !== undefined) updateData.hasRefraction = input.hasRefraction;
       if (input.formula !== undefined) {
-        const recalculatedMolarMass = calculateMolarMass(input.formula);
-        if (recalculatedMolarMass !== null) {
-          updateData.molarMass = recalculatedMolarMass;
-        } else if (input.molarMass !== undefined) {
-          updateData.molarMass = input.molarMass;
-        }
-      } else if (input.molarMass !== undefined) {
-        updateData.molarMass = input.molarMass;
+        updateData.molarMass = calculateMolarMass(input.formula);
       }
       if (input.density !== undefined) updateData.density = input.density;
       if (input.isPublic !== undefined) updateData.isPublic = input.isPublic;
