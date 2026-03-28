@@ -79,6 +79,7 @@ async function seed() {
         opacity: 1,
         hasRefraction: true,
         molarMass: 39.997, // g/mol
+        density: 2.13, // g/mL
       },
       {
         name: 'Sodium Chloride',
@@ -90,6 +91,7 @@ async function seed() {
         opacity: 1,
         hasRefraction: true,
         molarMass: 58.443, // g/mol
+        density: 2.165, // g/mL
       },
       {
         name: 'Ethanol',
@@ -113,17 +115,52 @@ async function seed() {
         opacity: 1,
         hasRefraction: true,
         molarMass: 249.685, // g/mol
+        density: 2.284, // g/mL
+      },
+      {
+        name: 'Copper(II) Hydroxide',
+        formula: 'Cu(OH)2',
+        colorHex: '#6EC1E4',
+        color: 'Light Blue',
+        state: 'solid' as const,
+        solubleInWater: false,
+        opacity: 1,
+        hasRefraction: true,
+        molarMass: 97.56, // g/mol
+        density: 3.37, // g/mL
+      },
+      {
+        name: 'Sodium Sulfate',
+        formula: 'Na2SO4',
+        colorHex: '#ffffff',
+        color: 'White',
+        state: 'solid' as const,
+        solubleInWater: true,
+        opacity: 1,
+        hasRefraction: true,
+        molarMass: 142.04, // g/mol
+        density: 2.664, // g/mL
       },
     ];
 
     for (const chem of chemicals) {
       const computedMolarMass = calculateMolarMass(chem.formula);
+      const resolvedMolarMass = computedMolarMass ?? (chem as any).molarMass;
+
+      if (!resolvedMolarMass || resolvedMolarMass <= 0) {
+        throw new Error(`Seed validation failed: missing/invalid molar mass for ${chem.name} (${chem.formula})`);
+      }
+
+      if (!chem.density || chem.density <= 0) {
+        throw new Error(`Seed validation failed: missing/invalid density for ${chem.name} (${chem.formula})`);
+      }
+
       await db.insert(schema.chemicals).values({
         id: uuidv4(),
         createdById: userId,
         isPublic: true,
         ...chem,
-        molarMass: computedMolarMass ?? (chem as any).molarMass,
+        molarMass: resolvedMolarMass,
       });
     }
 

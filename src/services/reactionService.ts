@@ -31,6 +31,23 @@ const normalizeReactants = (reactantsList: string[]): string[] =>
     .filter(Boolean)
     .sort();
 
+const REACTION_TEMPERATURE_TOLERANCE_C = 15;
+
+const isTemperatureWithinTolerance = (
+  storedTemperature: number | null,
+  targetTemperature?: number
+): boolean => {
+  if (typeof targetTemperature !== 'number' || Number.isNaN(targetTemperature)) {
+    return true;
+  }
+
+  if (typeof storedTemperature !== 'number' || Number.isNaN(storedTemperature)) {
+    return false;
+  }
+
+  return Math.abs(storedTemperature - targetTemperature) <= REACTION_TEMPERATURE_TOLERANCE_C;
+};
+
 const extractFormula = (entry: unknown): string | null => {
   if (typeof entry === 'string') {
     return entry;
@@ -65,7 +82,7 @@ const parseFormulaArray = (value: unknown): string[] => {
 };
 
 export const reactionService = {
-  findReactionByReactants: async (reactantsInput: string[]) => {
+  findReactionByReactants: async (reactantsInput: string[], temperature?: number) => {
     try {
       const normalizedTarget = normalizeReactants(reactantsInput);
 
@@ -87,7 +104,10 @@ export const reactionService = {
           return false;
         }
 
-        return normalizedStored.every((item, index) => item === normalizedTarget[index]);
+        const reactantsMatch = normalizedStored.every((item, index) => item === normalizedTarget[index]);
+        if (!reactantsMatch) return false;
+
+        return isTemperatureWithinTolerance(reaction.temperature, temperature);
       });
 
       if (!matched) {
@@ -119,7 +139,7 @@ export const reactionService = {
 
   createReaction: async (input: CreateReactionInput, userId?: string) => {
     try {
-      const existing = await reactionService.findReactionByReactants(input.reactants);
+      const existing = await reactionService.findReactionByReactants(input.reactants, input.temperature);
       if (existing.success && existing.found && existing.reaction) {
         return {
           success: true,

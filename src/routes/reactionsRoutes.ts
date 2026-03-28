@@ -33,6 +33,7 @@ const productsParser = z.preprocess(
 
 const findReactionSchema = z.object({
   reactants: reactantsParser,
+  temperature: z.number().optional(),
 });
 
 const createReactionSchema = z.object({
@@ -66,7 +67,10 @@ router.post('/find', async (req: Request, res: Response) => {
       });
     }
 
-    const result = await reactionService.findReactionByReactants(parsed.data.reactants);
+    const result = await reactionService.findReactionByReactants(
+      parsed.data.reactants,
+      parsed.data.temperature
+    );
 
     if (!result.success) {
       return res.status(500).json(result);
