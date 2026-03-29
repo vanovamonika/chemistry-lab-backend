@@ -31,6 +31,8 @@ export const reactions = sqliteTable('reactions', {
   
   // Metadata
   isVerified: integer('is_verified', { mode: 'boolean' }).default(false),
+  verifiedById: text('verified_by_id').references(() => users.id),
+  verifiedAt: integer('verified_at', { mode: 'timestamp' }),
   isPublic: integer('is_public', { mode: 'boolean' }).default(false),
   createdById: text('created_by_id').references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' })

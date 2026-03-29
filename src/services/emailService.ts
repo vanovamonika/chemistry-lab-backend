@@ -117,3 +117,53 @@ export const sendWelcomeEmail = async (email: string, username: string): Promise
     html,
   });
 };
+
+export interface ReactionVerifierApprovalRequestPayload {
+  highestEducationLevel: string;
+  chemistryEducationDetails: string;
+  yearsOfChemistryExperience: number;
+  laboratoryExperienceDetails: string;
+  currentRole: string;
+  motivation: string;
+}
+
+export const sendReactionVerifierApprovalRequestEmail = async (
+  userEmail: string,
+  username: string,
+  payload: ReactionVerifierApprovalRequestPayload
+): Promise<boolean> => {
+  if (!GMAIL_USER) {
+    console.warn('[Email] Approval request email cannot be sent because GMAIL_USER is missing.');
+    return false;
+  }
+
+  const html = `
+    <h2>Reaction Verifier Approval Request</h2>
+    <p>A user requested approval to verify reactions.</p>
+
+    <h3>User</h3>
+    <ul>
+      <li><strong>Username:</strong> ${username}</li>
+      <li><strong>Email:</strong> ${userEmail}</li>
+      <li><strong>Requested at:</strong> ${new Date().toISOString()}</li>
+    </ul>
+
+    <h3>Applicant Background</h3>
+    <ul>
+      <li><strong>Highest education level:</strong> ${payload.highestEducationLevel}</li>
+      <li><strong>Chemistry education details:</strong> ${payload.chemistryEducationDetails}</li>
+      <li><strong>Years of chemistry experience:</strong> ${payload.yearsOfChemistryExperience}</li>
+      <li><strong>Laboratory experience:</strong> ${payload.laboratoryExperienceDetails}</li>
+      <li><strong>Current role:</strong> ${payload.currentRole}</li>
+      <li><strong>Motivation:</strong> ${payload.motivation}</li>
+    </ul>
+
+    <p>Please review this request in the admin workflow.</p>
+  `;
+
+  return sendEmail({
+    to: GMAIL_USER,
+    subject: `Approval request: reaction verifier (${username})`,
+    html,
+  });
+};

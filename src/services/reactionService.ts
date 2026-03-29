@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
-import { reactions } from '../db/schema';
+import { reactions, users } from '../db/schema';
 
 export type CreateReactionInput = {
   reactants: string[];
@@ -23,7 +23,11 @@ export type CreateReactionInput = {
 };
 
 const normalizeFormula = (formula: string): string =>
-  formula.replace(/\s+/g, '').toLowerCase();
+  formula
+    .replace(/\s+/g, '')
+    // Normalize state annotations so HCl, HCl(aq), HCl(l) match in DB lookup
+    .replace(/\((aq|s|l|g)\)$/i, '')
+    .toLowerCase();
 
 const normalizeReactants = (reactantsList: string[]): string[] =>
   reactantsList
@@ -167,7 +171,9 @@ export const reactionService = {
           gas: input.gas,
           visualDescription: input.visualDescription,
           safetyWarnings: input.safetyWarnings,
-          isVerified: input.isVerified,
+          isVerified: false,
+          verifiedById: null,
+          verifiedAt: null,
           isPublic: input.isPublic ?? true,
           createdById: userId,
           createdAt: new Date(),
@@ -215,6 +221,81 @@ export const reactionService = {
       return {
         success: false,
         message: 'Error fetching reaction',
+      };
+    }
+  },
+
+  verifyReaction: async (reactionId: string, userId: string) => {
+    try {
+      const approver = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (approver.length === 0) {
+        return {
+          success: false,
+          message: 'User not found',
+          statusCode: 404,
+        };
+      }
+
+      if (!approver[0].isReactionVerifierApproved) {
+        return {
+          success: false,
+          message: 'Only approved users can verify reactions',
+          statusCode: 403,
+        };
+      }
+
+      const existing = await db
+        .select()
+        .from(reactions)
+        .where(eq(reactions.id, reactionId))
+        .limit(1);
+
+      if (existing.length === 0) {
+        return {
+          success: false,
+          message: 'Reaction not found',
+          statusCode: 404,
+        };
+      }
+
+      const alreadyVerified = existing[0].isVerified === true;
+      const verifiedAt = existing[0].verifiedAt ?? new Date();
+      const verifiedById = existing[0].verifiedById ?? userId;
+
+      if (!alreadyVerified) {
+        await db
+          .update(reactions)
+          .set({
+            isVerified: true,
+            verifiedById: userId,
+            verifiedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(reactions.id, reactionId));
+      }
+
+      return {
+        success: true,
+        message: alreadyVerified ? 'Reaction already verified' : 'Reaction verified successfully',
+        reaction: {
+          id: reactionId,
+          isVerified: true,
+          verifiedById,
+          verifiedAt,
+        },
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Error verifying reaction:', error);
+      return {
+        success: false,
+        message: 'Error verifying reaction',
+        statusCode: 500,
       };
     }
   },

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9fbdf7af-0517-4be1-a6c1-d4de046a87ee",
+  "id": "8cf03132-0477-428f-9cf4-d39121276e18",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "chemical_content": {
@@ -624,6 +624,20 @@
           "autoincrement": false,
           "default": false
         },
+        "verified_by_id": {
+          "name": "verified_by_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "is_public": {
           "name": "is_public",
           "type": "integer",
@@ -658,6 +672,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "reactions_verified_by_id_users_id_fk": {
+          "name": "reactions_verified_by_id_users_id_fk",
+          "tableFrom": "reactions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "verified_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "reactions_created_by_id_users_id_fk": {
           "name": "reactions_created_by_id_users_id_fk",
           "tableFrom": "reactions",
@@ -768,6 +795,43 @@
         },
         "settings": {
           "name": "settings",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_reaction_verifier_approved": {
+          "name": "is_reaction_verifier_approved",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "reaction_verifier_approval_status": {
+          "name": "reaction_verifier_approval_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'not_requested'"
+        },
+        "reaction_verifier_requested_at": {
+          "name": "reaction_verifier_requested_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reaction_verifier_approved_at": {
+          "name": "reaction_verifier_approved_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reaction_verifier_approval_request": {
+          "name": "reaction_verifier_approval_request",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

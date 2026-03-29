@@ -20,7 +20,57 @@ async function seed() {
     // Check if already seeded
     const existingUsers = await db.select().from(schema.users).limit(1);
     if (existingUsers.length > 0) {
-      console.log('✅ Database already has data, skipping seed');
+      console.log('✅ Database already has data, ensuring verified demo reaction exists...');
+
+      const demoUser = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, 'demo@chemistrylab.com'))
+        .limit(1);
+
+      if (demoUser.length > 0) {
+        const existingVerifiedReaction = await db
+          .select()
+          .from(schema.reactions)
+          .where(eq(schema.reactions.equation, 'HCl + NaOH → NaCl + H2O'))
+          .limit(1);
+
+        if (existingVerifiedReaction.length === 0) {
+          const now = new Date();
+          await db.insert(schema.reactions).values({
+            id: uuidv4(),
+            equation: 'HCl + NaOH → NaCl + H2O',
+            reactants: ['HCl', 'NaOH'],
+            products: ['NaCl', 'H2O'],
+            temperature: 25,
+            color: '#FFFFFF',
+            bubbles: false,
+            heat: true,
+            isVerified: true,
+            verifiedById: demoUser[0].id,
+            verifiedAt: now,
+            isPublic: true,
+            createdById: demoUser[0].id,
+            createdAt: now,
+            updatedAt: now,
+          });
+          console.log('✅ Added missing verified demo reaction for guest testing');
+        } else {
+          await db
+            .update(schema.reactions)
+            .set({
+              temperature: existingVerifiedReaction[0].temperature ?? 25,
+              isVerified: true,
+              verifiedById: existingVerifiedReaction[0].verifiedById ?? demoUser[0].id,
+              verifiedAt: existingVerifiedReaction[0].verifiedAt ?? new Date(),
+              isPublic: true,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.reactions.id, existingVerifiedReaction[0].id));
+          console.log('✅ Verified demo reaction already exists');
+        }
+      }
+
       return;
     }
 
@@ -207,6 +257,7 @@ async function seed() {
         equation: 'HCl + NaOH → NaCl + H2O',
         reactants: ['HCl', 'NaOH'],
         products: ['NaCl', 'H2O'],
+        temperature: 25,
         color: '#FFFFFF',
         bubbles: false,
         heat: true,
@@ -217,10 +268,23 @@ async function seed() {
         equation: 'CuSO4 + 5H2O → CuSO4·5H2O',
         reactants: ['CuSO4', 'H2O'],
         products: ['CuSO4·5H2O'],
+        temperature: 25,
         reactionType: 'hydration',
         color: '#3B7A9E',
         precipitate: true,
         visualDescription: 'Blue crystals form',
+        isVerified: true,
+        isPublic: true,
+      },
+      {
+        equation: 'AgNO3 + NaCl → AgCl + NaNO3',
+        reactants: ['AgNO3', 'NaCl'],
+        products: ['AgCl', 'NaNO3'],
+        temperature: 25,
+        reactionType: 'double displacement',
+        precipitate: true,
+        color: '#FFFFFF',
+        visualDescription: 'White precipitate (AgCl) forms',
         isVerified: true,
         isPublic: true,
       },
@@ -229,6 +293,8 @@ async function seed() {
     for (const reaction of reactions) {
       await db.insert(schema.reactions).values({
         id: uuidv4(),
+        verifiedById: userId,
+        verifiedAt: new Date(),
         createdById: userId,
         ...reaction,
       });

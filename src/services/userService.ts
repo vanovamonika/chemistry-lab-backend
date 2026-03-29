@@ -4,7 +4,13 @@ import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { generateToken, generateEmailVerificationToken } from '../auth/tokens';
-import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from './emailService';
+import {
+  sendVerificationEmail,
+  sendWelcomeEmail,
+  sendPasswordResetEmail,
+  sendReactionVerifierApprovalRequestEmail,
+  ReactionVerifierApprovalRequestPayload,
+} from './emailService';
 
 const SALT_ROUNDS = 10;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -152,10 +158,17 @@ export const userService = {
       }
 
       // Generate token
+      console.log('=== LOGIN TOKEN GENERATION ===');
+      console.log('user.id:', user.id);
+      console.log('user.id type:', typeof user.id);
+      console.log('user.id length:', user.id ? user.id.length : 'null');
+
       const token = generateToken({
         userId: user.id,
         email: user.email,
       });
+
+      console.log('Token generated with userId:', user.id);
 
       // Update last login
       await db
@@ -438,6 +451,10 @@ export const userService = {
         username: user.username,
         isEmailVerified: user.isEmailVerified,
         avatar: user.avatar,
+        isReactionVerifierApproved: user.isReactionVerifierApproved,
+        reactionVerifierApprovalStatus: user.reactionVerifierApprovalStatus,
+        reactionVerifierRequestedAt: user.reactionVerifierRequestedAt,
+        reactionVerifierApprovedAt: user.reactionVerifierApprovedAt,
         createdAt: user.createdAt,
         lastLoginAt: user.lastLoginAt,
       };
@@ -578,6 +595,84 @@ export const userService = {
       return {
         success: false,
         message: 'Error changing password',
+      };
+    }
+  },
+
+  requestReactionVerifierApproval: async (
+    userId: string,
+    payload: ReactionVerifierApprovalRequestPayload
+  ) => {
+    try {
+      console.log('=== REQUEST VERIFIER APPROVAL DEBUG ===');
+      console.log('userId received:', userId);
+      console.log('userId type:', typeof userId);
+      console.log('userId length:', userId ? userId.length : 'null');
+      console.log('userId as JSON:', JSON.stringify({ userId }));
+      
+      const foundUsers = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      console.log('Found users:', foundUsers.length, 'for userId:', userId);
+
+      if (foundUsers.length === 0) {
+        // Try to get all users to debug
+        const allUsers = await db.select({ id: users.id, email: users.email }).from(users);
+        console.log('All users in database:', JSON.stringify(allUsers, null, 2));
+        
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      const user = foundUsers[0];
+
+      if (user.isReactionVerifierApproved) {
+        return {
+          success: false,
+          message: 'You are already approved to verify reactions.',
+        };
+      }
+
+      if (user.reactionVerifierApprovalStatus === 'pending') {
+        return {
+          success: false,
+          message: 'Your approval request is already pending review.',
+        };
+      }
+
+      await db
+        .update(users)
+        .set({
+          reactionVerifierApprovalStatus: 'pending',
+          reactionVerifierRequestedAt: new Date(),
+          reactionVerifierApprovalRequest: payload,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId));
+
+      const emailSent = await sendReactionVerifierApprovalRequestEmail(
+        user.email,
+        user.username,
+        payload
+      );
+
+      return {
+        success: true,
+        message: emailSent
+          ? 'Approval request submitted successfully.'
+          : 'Approval request saved, but notification email could not be sent.',
+        emailSent,
+      };
+    } catch (error) {
+      console.error('Error requesting reaction verifier approval:', error);
+      return {
+        success: false,
+        message: 'Error submitting approval request',
       };
     }
   },

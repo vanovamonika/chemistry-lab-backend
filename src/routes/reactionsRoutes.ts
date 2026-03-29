@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { authMiddleware } from '../auth/middleware';
 import { optionalAuthMiddleware } from '../auth/middleware';
 import { reactionService } from '../services/reactionService';
 
@@ -116,6 +117,40 @@ router.post('/', optionalAuthMiddleware, async (req: Request, res: Response) => 
     return res.status(statusCode).json(result);
   } catch (error) {
     console.error('Create reaction error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+});
+
+router.post('/:id/verify', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
+
+    const reactionId = req.params.id;
+    if (!reactionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reaction id is required',
+      });
+    }
+
+    const result = await reactionService.verifyReaction(reactionId, req.user.userId);
+    const statusCode = result.statusCode || (result.success ? 200 : 400);
+
+    return res.status(statusCode).json({
+      success: result.success,
+      message: result.message,
+      reaction: result.reaction,
+    });
+  } catch (error) {
+    console.error('Verify reaction error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',

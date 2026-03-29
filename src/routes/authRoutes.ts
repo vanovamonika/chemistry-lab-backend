@@ -62,6 +62,15 @@ const updateProfileSchema = z.object({
   settings: z.any().optional(),
 });
 
+const reactionVerifierApprovalRequestSchema = z.object({
+  highestEducationLevel: z.string().min(2, 'Highest education level is required').max(120),
+  chemistryEducationDetails: z.string().min(20, 'Please provide chemistry education details').max(4000),
+  yearsOfChemistryExperience: z.number().min(0).max(80),
+  laboratoryExperienceDetails: z.string().min(20, 'Please provide laboratory experience details').max(4000),
+  currentRole: z.string().min(2, 'Current role is required').max(200),
+  motivation: z.string().min(20, 'Please explain why you want to verify reactions').max(4000),
+});
+
 /**
  * Register a new user
  * @param {string} email - User email address
@@ -338,6 +347,48 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+});
+
+/**
+ * Submit a request to become an approved reaction verifier
+ * @requires Authentication token in header
+ */
+router.post('/request-reaction-verifier-approval', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
+
+    console.log('Received approval request payload:', req.body);
+
+    const validationResult = reactionVerifierApprovalRequestSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      console.error('Validation errors:', validationResult.error.flatten());
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: validationResult.error.flatten(),
+      });
+    }
+
+    const result = await userService.requestReactionVerifierApproval(
+      req.user.userId,
+      validationResult.data
+    );
+
+    const statusCode = result.success ? 200 : 400;
+    return res.status(statusCode).json(result);
+  } catch (error) {
+    console.error('Request reaction verifier approval error:', error);
+    return res.status(500).json({
       success: false,
       message: 'Internal server error',
     });

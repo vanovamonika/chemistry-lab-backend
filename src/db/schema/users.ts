@@ -17,6 +17,11 @@ export const users = sqliteTable('users', {
     .default(sql`CURRENT_TIMESTAMP`),
   lastLoginAt: integer('last_login_at', { mode: 'timestamp' }),
   settings: text('settings', { mode: 'json' }), // JSON preferences
+  isReactionVerifierApproved: integer('is_reaction_verifier_approved', { mode: 'boolean' }).default(false),
+  reactionVerifierApprovalStatus: text('reaction_verifier_approval_status').default('not_requested'),
+  reactionVerifierRequestedAt: integer('reaction_verifier_requested_at', { mode: 'timestamp' }),
+  reactionVerifierApprovedAt: integer('reaction_verifier_approved_at', { mode: 'timestamp' }),
+  reactionVerifierApprovalRequest: text('reaction_verifier_approval_request', { mode: 'json' }),
 });
 
 export type User = typeof users.$inferSelect;

@@ -88,10 +88,13 @@ CREATE TABLE `reactions` (
 	`visual_description` text,
 	`safety_warnings` text,
 	`is_verified` integer DEFAULT false,
+	`verified_by_id` text,
+	`verified_at` integer,
 	`is_public` integer DEFAULT false,
 	`created_by_id` text,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`verified_by_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -108,7 +111,12 @@ CREATE TABLE `users` (
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP,
 	`last_login_at` integer,
-	`settings` text
+	`settings` text,
+	`is_reaction_verifier_approved` integer DEFAULT false,
+	`reaction_verifier_approval_status` text DEFAULT 'not_requested',
+	`reaction_verifier_requested_at` integer,
+	`reaction_verifier_approved_at` integer,
+	`reaction_verifier_approval_request` text
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
