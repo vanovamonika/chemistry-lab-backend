@@ -143,6 +143,22 @@ export const reactionService = {
 
   createReaction: async (input: CreateReactionInput, userId?: string) => {
     try {
+      if (!Array.isArray(input.reactants) || input.reactants.length < 2) {
+        return {
+          success: false,
+          created: false,
+          message: 'At least two reactants are required',
+        };
+      }
+
+      if (!Array.isArray(input.products) || input.products.length < 1) {
+        return {
+          success: false,
+          created: false,
+          message: 'At least one product is required',
+        };
+      }
+
       const existing = await reactionService.findReactionByReactants(input.reactants, input.temperature);
       if (existing.success && existing.found && existing.reaction) {
         return {
@@ -171,9 +187,9 @@ export const reactionService = {
           gas: input.gas,
           visualDescription: input.visualDescription,
           safetyWarnings: input.safetyWarnings,
-          isVerified: false,
-          verifiedById: null,
-          verifiedAt: null,
+          isVerified: input.isVerified ?? false,
+          verifiedById: input.isVerified ? userId : null,
+          verifiedAt: input.isVerified ? new Date() : null,
           isPublic: input.isPublic ?? true,
           createdById: userId,
           createdAt: new Date(),
